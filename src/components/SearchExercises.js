@@ -1,19 +1,71 @@
 import { Box, Button, Stack, TextField, Typography } from "@mui/material";
-import React, { useState } from "react";
-import { exerciseOptions, fetchData } from "../utils/fetchData";
+import React, { useState, useEffect } from "react";
+import HorizontalScrollbar from "./HorizontalScrollbar";
 
-const SearchExercises = () => {
+const SearchExercises = ({ setExercises, bodyPart, setBodyPart }) => {
   const [search, setSearch] = useState("");
+  const [bodyParts, setBodyParts] = useState([]);
+
+  useEffect(() => {
+    const fetchExerciseData = async () => {
+      try {
+        const response = await fetch(
+          `https://api.api-ninjas.com/v1/exercises`,
+          {
+            method: "GET",
+            headers: {
+              "X-Api-Key": process.env.REACT_APP_API_KEY,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (response.ok) {
+          const bodyPartsData = await response.json(); // Extract JSON data
+          setBodyParts([...bodyPartsData]);
+        } else {
+          throw new Error(`Request failed with status: ${response.status}`);
+        }
+      } catch (error) {
+        console.error("Error:", error);
+      }
+    };
+    console.log(bodyParts);
+    fetchExerciseData();
+  }, []);
+
   const handleSearch = async () => {
     if (search) {
       try {
-        const exercisesData = await fetchData(
-          `v1/exercises?muscle=${search}`,
-          exerciseOptions
+        const response = await fetch(
+          `https://api.api-ninjas.com/v1/exercises?muscle=${search}`,
+          {
+            method: "GET",
+            headers: {
+              "X-Api-Key": process.env.REACT_APP_API_KEY,
+              "Content-Type": "application/json",
+            },
+          }
         );
-        console.log(exercisesData);
+
+        if (response.ok) {
+          const responseData = await response.json(); // Extract JSON data
+          const searchedExercises = responseData.filter(
+            (exercise) =>
+              exercise.name.toLowerCase().includes(search.toLowerCase()) ||
+              exercise.muscle.toLowerCase().includes(search.toLowerCase()) ||
+              exercise.equipment.toLowerCase().includes(search.toLowerCase()) ||
+              exercise.type.toLowerCase().includes(search.toLowerCase())
+          );
+
+          setSearch("");
+          setExercises(searchedExercises);
+          console.log(searchedExercises);
+        } else {
+          throw new Error(`Request failed with status: ${response.status}`);
+        }
       } catch (error) {
-        console.error("Error fetching data:", error);
+        console.error("Error:", error);
       }
     }
   };
@@ -57,6 +109,13 @@ const SearchExercises = () => {
         >
           Search
         </Button>
+      </Box>
+      <Box sx={{ position: "relative", width: "100%", p: "20px" }}>
+        <HorizontalScrollbar
+          data={bodyParts}
+          bodyPart={bodyPart}
+          setBodyPart={setBodyPart}
+        />
       </Box>
     </Stack>
   );
